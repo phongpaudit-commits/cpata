@@ -1,0 +1,754 @@
+<meta charset="utf-8"><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#1F5A63"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ทะเบียนงาน CPA·TA</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one-column phone ledger — sticky header, scrolling sheet of cards, bottom tab bar; widens to a centered 720px column on desktop */
+:root{
+  --bg:#F3F5F4; --surface:#FFFFFF; --ink:#16282C; --muted:#5E7176; --line:#DCE3E2;
+  --accent:#1F5A63; --accent-soft:#E2EEEE; --gold:#B57A12; --gold-soft:#FBF0D9;
+  --bad:#B3361F; --bad-soft:#F9E1DC; --good:#2E7A4B; --good-soft:#DFF1E5; --blue:#2D5FA0; --blue-soft:#E3ECF8;
+  --font:"IBM Plex Sans Thai",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1A1C; --surface:#172427; --ink:#E4ECEB; --muted:#93A6A8; --line:#2A3B3E;
+  --accent:#6FB7BF; --accent-soft:#1D3A3E; --gold:#E2AE4E; --gold-soft:#3A2F17;
+  --bad:#F08A73; --bad-soft:#3E1F19; --good:#73C894; --good-soft:#18352A; --blue:#8DB3E6; --blue-soft:#1C2C42; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1A1C; --surface:#172427; --ink:#E4ECEB; --muted:#93A6A8; --line:#2A3B3E;
+  --accent:#6FB7BF; --accent-soft:#1D3A3E; --gold:#E2AE4E; --gold-soft:#3A2F17;
+  --bad:#F08A73; --bad-soft:#3E1F19; --good:#73C894; --good-soft:#18352A; --blue:#8DB3E6; --blue-soft:#1C2C42; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:500}
+.wrap{max-width:720px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:10px;padding-block:10px}
+.brand{font-weight:700;font-size:17px;letter-spacing:.01em;flex:1;min-width:0}
+.brand small{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.yearsel{display:flex;gap:6px;overflow-x:auto;padding-block:0 10px;scrollbar-width:none}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;font-size:13px;white-space:nowrap;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+main{padding-block:14px 96px}
+section[hidden]{display:none}
+h2{font-size:13px;font-weight:600;letter-spacing:.06em;color:var(--muted);margin:22px 0 8px;text-transform:uppercase}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.kpi .l{font-size:12px;color:var(--muted)}
+.kpi .v{font-size:22px;line-height:1.25}
+.kpi .s{font-size:12px;color:var(--muted)}
+.kpi.warn .v{color:var(--gold)}
+.pipe{display:flex;flex-direction:column;gap:6px}
+.pipe button{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;text-align:left;cursor:pointer;position:relative;overflow:hidden}
+.pipe .bar{position:absolute;inset:auto auto 0 0;height:3px;background:currentColor;opacity:.55}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.st-s1{background:var(--blue-soft);color:var(--blue)} .st-s2{background:var(--accent-soft);color:var(--accent)}
+.st-wait{background:#ece6f6;color:#6a4c93}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .st-wait{background:#2e2640;color:#c4b2e6}}
+:root[data-theme="dark"] .st-wait{background:#2e2640;color:#c4b2e6}
+.st-late{background:var(--bad-soft);color:var(--bad)} .st-s3{background:var(--gold-soft);color:var(--gold)}
+.st-s4{background:var(--gold-soft);color:var(--gold)} .st-s5{background:var(--good-soft);color:var(--good)}
+.st-cancel{background:var(--line);color:var(--muted)}
+.st-nopay{background:var(--bad-soft);color:var(--muted)}
+.issues{display:flex;flex-direction:column;gap:6px}
+.issue{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:var(--r);padding:9px 12px;cursor:pointer;text-align:left;width:100%}
+.issue.bad{border-left-color:var(--bad)}
+.issue .t{font-weight:600;font-size:14px}
+.issue .d{font-size:13px;color:var(--muted)}
+.empty{color:var(--muted);font-size:14px;padding:16px;text-align:center;border:1px dashed var(--line);border-radius:var(--r)}
+.search{display:flex;gap:8px;margin-bottom:10px}
+.search input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:10px 12px}
+.filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none}
+.list{display:flex;flex-direction:column;gap:8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:11px 12px;cursor:pointer;text-align:left;width:100%;display:grid;gap:4px}
+.card .row1{display:flex;gap:8px;align-items:flex-start}
+.card .nm{font-weight:600;flex:1;min-width:0}
+.card .meta{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;color:var(--muted)}
+.card .flags{font-size:12px;color:var(--bad)}
+.tag{font-size:11px;font-weight:700;letter-spacing:.05em;border:1px solid currentColor;border-radius:4px;padding:0 5px;color:var(--accent)}
+.tag.ta{color:var(--gold)}
+.count{font-size:13px;color:var(--muted);margin-bottom:8px}
+nav.tabs{position:fixed;inset:auto 0 0 0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.tabs .wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding-block:6px}
+nav.tabs button{background:none;border:0;padding:6px 0;font-size:12px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border-radius:8px}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[hidden]{display:none}
+nav.tabs button[aria-current="page"]{color:var(--accent);font-weight:600}
+nav.tabs .add{color:var(--surface);background:var(--accent)}
+/* sheet */
+.sheet{position:fixed;inset:0;z-index:20;background:color-mix(in srgb,var(--ink) 40%,transparent);display:flex;align-items:flex-end;justify-content:center}
+.sheet[hidden]{display:none}
+.panel{background:var(--bg);width:100%;max-width:720px;max-height:94%;overflow:auto;border-radius:16px 16px 0 0;padding:0 0 calc(20px + env(safe-area-inset-bottom,0px))}
+.panel .ph{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:12px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));z-index:2}
+.panel .ph b{flex:1;min-width:0;font-size:16px}
+.panel .body{padding:12px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:9px 14px;cursor:pointer;font-weight:600}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn.ghost{background:none;border-color:transparent;color:var(--muted)}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:default}
+.quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:6px}
+.quick .btn{font-size:13px;padding:10px 8px}
+fieldset{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:4px 12px 12px;margin:12px 0}
+legend{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--muted);padding:0 6px}
+.f{display:grid;gap:3px;margin-top:10px;min-width:0}
+.f label{font-size:13px;color:var(--muted)}
+.f input,.f select,.f textarea{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:9px 10px;width:100%;min-width:0}
+.f .hint{font-size:12px;color:var(--muted)}
+.f .hint.bad{color:var(--bad)} .f .hint.ok{color:var(--good)}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 10px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1;border:0;background:var(--bg);padding:8px;cursor:pointer;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+.calc{font-size:13px;color:var(--muted);margin-top:8px}
+.formissues{display:flex;flex-direction:column;gap:4px;margin-top:10px}
+.formissues div{font-size:13px;padding:6px 10px;border-radius:8px;background:var(--gold-soft);color:var(--gold)}
+.formissues div.bad{background:var(--bad-soft);color:var(--bad)}
+.actions{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;margin-top:14px}
+.reftable{width:100%;border-collapse:collapse;font-size:14px}
+.reftable th{font-size:12px;color:var(--muted);text-align:right;font-weight:600;padding:6px 4px;border-bottom:1px solid var(--line)}
+.reftable th:first-child,.reftable td:first-child{text-align:left}
+.reftable td{padding:9px 4px;border-bottom:1px solid var(--line);text-align:right}
+.reftable tr{cursor:pointer}
+.tablebox{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:4px 10px;overflow-x:auto}
+.note{font-size:13px;color:var(--muted)}
+.addrow{display:flex;gap:8px;margin:8px 0}
+.addrow input,.prow input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px}
+.plist{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.prow{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.prow:last-child{border-bottom:0}
+.prow .pn{flex:1;min-width:0;font-weight:500;overflow-wrap:anywhere}
+.prow .pc{font-size:13px;color:var(--muted)}
+.prow .btn{padding:5px 10px;font-size:13px}
+.plist .empty{border:0}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:999px;font-size:14px;z-index:30}
+.banner{background:var(--gold-soft);color:var(--gold);border-radius:var(--r);padding:10px 12px;font-size:14px;margin-bottom:10px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (min-width:560px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.quick{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (prefers-reduced-motion:no-preference){.sheet .panel{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">ทะเบียนงาน CPA·TA<small id="sub">กำลังโหลดข้อมูล…</small></div>
+    <div class="seg" id="typeSeg" style="width:150px">
+      <button data-t="ALL" aria-pressed="true">ทั้งหมด</button><button data-t="CPA" aria-pressed="false">CPA</button><button data-t="TA" aria-pressed="false">TA</button>
+    </div>
+  </div>
+  <div class="wrap yearsel" id="years"></div>
+</header>
+
+<main class="wrap">
+  <div id="banner" class="banner" hidden></div>
+  <p class="note" id="syncInfo" style="margin:10px 0 0">ข้อมูลจากไฟล์ Excel บน NAS · ดูอย่างเดียว แก้ไขข้อมูลที่ไฟล์ Excel</p>
+
+  <section id="v-home">
+    <div class="kpis" id="kpis"></div>
+    <h2>สถานะงาน</h2>
+    <div class="pipe" id="pipe"></div>
+    <h2>ต้องติดตาม</h2>
+    <div class="issues" id="issues"></div>
+  </section>
+
+  <section id="v-jobs" hidden>
+    <div class="search"><input id="q" type="search" placeholder="ค้นชื่อกิจการ เลขผู้เสียภาษี หรือผู้ส่งงาน" autocomplete="off"><button class="btn" id="exportBtn" hidden>ส่งออก CSV</button></div>
+    <div class="filters" id="stFilters"></div>
+    <div class="count" id="count"></div>
+    <div class="list" id="list"></div>
+  </section>
+
+  <section id="v-ref" hidden>
+    <p class="note">ยอดตามผู้ส่งงานของปีที่เลือก ค่าตอบแทนแสดงยอดสุทธิหลังหัก ณ ที่จ่าย 3% แตะชื่อเพื่อดูรายการงาน</p>
+    <div class="tablebox"><table class="reftable" id="reftable"></table></div>
+    <div hidden>
+    <h2>รายชื่อผู้ช่วย</h2>
+    <p class="note">ชื่อในรายการนี้จะขึ้นให้เลือกในฟอร์มงาน แก้ไขชื่อแล้วทุกงานที่ใช้ชื่อเดิมจะเปลี่ยนตาม ลบชื่อแล้วงานเก่ายังเก็บชื่อไว้เป็นประวัติ</p>
+    <form class="addrow" id="asstAddForm"><input id="asstNew" placeholder="พิมพ์ชื่อผู้ช่วยใหม่" autocomplete="off"><button class="btn primary" type="submit">เพิ่ม</button></form>
+    <div class="plist" id="asstBox"></div>
+    <h2>ชื่อในงานที่ยังไม่อยู่ในรายชื่อ</h2>
+    <p class="note">ชื่อสะกดต่างกันหรือข้อความที่ไม่ใช่ชื่อ แก้ให้ตรงกับรายชื่อ เพิ่มเข้ารายชื่อ หรือย้ายไปหมายเหตุ</p>
+    <div class="plist" id="asstOrphans"></div>
+    <h2>นำเข้าจาก Excel</h2>
+    <p class="note">บันทึกชีต "ทะเบียนงาน" ของไฟล์แม่แบบเป็น CSV (UTF-8) แล้วเลือกไฟล์ที่นี่ งานที่มีรหัสงานเดิมจะถูกอัปเดต งานใหม่จะถูกเพิ่ม</p>
+    <input type="file" id="importFile" accept=".csv,text/csv">
+    <div class="note" id="importMsg"></div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="เมนู">
+  <div class="wrap">
+    <button data-v="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13h4v7H4zM10 4h4v16h-4zM16 9h4v11h-4z"/></svg>ภาพรวม</button>
+    <button data-v="jobs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>งานทั้งหมด</button>
+    <button data-v="ref"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5M16 5.2a3 3 0 0 1 0 5.6M18 13.8c1.9.7 3 2.6 3 5.2"/></svg>รายชื่อ</button>
+    <button data-v="add" class="add" id="addBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>รับงานใหม่</button>
+  </div>
+</nav>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="ph"><b id="sheetTitle">งาน</b><button class="btn ghost" id="closeSheet">ปิด</button></div>
+    <div class="body">
+      <form id="form" autocomplete="off">
+        <div class="quick" id="quick"></div>
+        <fieldset><legend>ข้อมูลกิจการ</legend>
+          <div class="g2">
+            <div class="f"><label>ประเภทงาน</label><div class="seg" id="fType"><button type="button" data-t="CPA">CPA</button><button type="button" data-t="TA">TA</button></div></div>
+            <div class="f"><label for="fWorkYear">ปีงาน (พ.ศ.)</label><input id="fWorkYear" type="number" inputmode="numeric" min="2560" max="2600"></div>
+          </div>
+          <div class="f"><label for="fName">ชื่อกิจการ</label><input id="fName" required></div>
+          <div class="f"><label for="fTin">เลขผู้เสียภาษี 13 หลัก</label><input id="fTin" inputmode="numeric" maxlength="17"><span class="hint" id="tinHint"></span><span class="hint ok" id="autoNote"></span></div>
+          <div class="g2">
+            <div class="f"><label for="fRef">ผู้ส่งงาน</label><input id="fRef" list="refList"></div>
+            <div class="f"><label for="fAsst">ผู้ช่วยฯ</label><input id="fAsst" list="asstList"><span class="hint" id="asstHint"></span></div>
+          </div>
+        </fieldset>
+        <fieldset><legend>ขั้นตอนงาน</legend>
+          <div class="g2">
+            <div class="f"><label for="fFye">วันสิ้นปีบัญชี</label><input id="fFye" type="date"><span class="hint" id="fyeHint"></span></div>
+            <div class="f"><label for="fNotified">แจ้งรับงานในระบบ</label><input id="fNotified" type="date"><span class="hint" data-be="fNotified"></span></div>
+            <div class="f"><label for="fDocs">วันที่ส่งงาน (ผู้ทำบัญชีส่งเอกสาร)</label><input id="fDocs" type="date"><span class="hint" data-be="fDocs"></span></div>
+            <div class="f"><label for="fReport">วันที่ลงรายงาน</label><input id="fReport" type="date"><span class="hint" data-be="fReport"></span></div>
+            <div class="f"><label for="fOpinion">ความเห็น</label><select id="fOpinion"></select></div>
+            <div class="f"><label for="fPaid">วันที่รับเงิน</label><input id="fPaid" type="date"><span class="hint" data-be="fPaid"></span></div>
+            <div class="f"><label for="fWht">หนังสือ 50 ทวิ</label><select id="fWht"><option value="">ไม่ได้บันทึก</option><option value="yes">ได้แล้ว</option><option value="no">ยังไม่ได้</option></select></div>
+          </div>
+          <div class="f"><label for="fNoPay">ไม่ได้รับเงิน (ใส่เหตุผล เฉพาะงานที่จะไม่ได้รับเงิน)</label><input id="fNoPay" list="noPayList" placeholder="เว้นว่างถ้ารับเงินตามปกติ"><span class="hint" id="noPayHint"></span></div>
+          <datalist id="noPayList"><option value="ไม่เก็บค่าธรรมเนียม"><option value="ลูกค้าไม่ชำระ"><option value="ลูกค้าเลิกกิจการ"></datalist>
+        </fieldset>
+        <fieldset><legend>เงิน</legend>
+          <div class="g2">
+            <div class="f"><label for="fFee">ค่าธรรมเนียม (บาท)</label><input id="fFee" type="number" inputmode="decimal" min="0" step="any"></div>
+            <div class="f"><label for="fRev">รายได้ในงบ (บาท)</label><input id="fRev" type="number" inputmode="decimal" min="0" step="any"></div>
+            <div class="f"><label for="fPayout">ค่าตอบแทนผู้ส่งงาน</label><input id="fPayout" type="number" inputmode="decimal" min="0" step="any"></div>
+            <div class="f"><label for="fPayoutDate">วันที่โอนจ่าย</label><input id="fPayoutDate" type="date"><span class="hint" data-be="fPayoutDate"></span></div>
+          </div>
+          <div class="calc" id="payCalc"></div>
+        </fieldset>
+        <fieldset><legend>อื่น ๆ</legend>
+          <div class="f"><label for="fNote">หมายเหตุ</label><textarea id="fNote" rows="2"></textarea></div>
+          <div class="f"><label><input type="checkbox" id="fCancel" style="width:auto"> ยกเลิกงานนี้</label></div>
+        </fieldset>
+        <div class="formissues" id="formIssues"></div>
+        <div class="actions">
+          <span style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn danger" id="delBtn">ลบรายการ</button><button type="button" class="btn" id="rollBtn">ต่องานปีหน้า</button></span>
+          <span style="display:flex;gap:8px"><button type="button" class="btn" id="cancelBtn">ยกเลิกการแก้ไข</button><button type="submit" class="btn primary" id="saveBtn">บันทึก</button></span>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<datalist id="refList"></datalist><datalist id="asstList"></datalist>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const OPIN = {CPA:['ไม่มีเงื่อนไข','มีเงื่อนไข','งบการเงินไม่ถูกต้อง','ไม่แสดงความเห็น'],TA:['ไม่มีข้อยกเว้น','มีข้อยกเว้น']};
+const ST = {s1:'รอแจ้งรับงาน',wait:'รอลูกค้าส่งงาน',s2:'ระหว่างตรวจ',late:'เลยกำหนดส่งงบ',s3:'รอรับเงิน',s4:'รอโอนผู้ส่งงาน',s5:'ปิดงาน',nopay:'ไม่ได้รับเงิน',cancel:'ยกเลิก'};
+const ST_ORDER = ['late','s1','wait','s2','s3','s4','s5','nopay','cancel'];
+const isMoney = j => !j.cancelled && !j.noPay;
+const DEADLINE_DAYS = 150;
+
+// View-only: the Excel file on the NAS is the source of truth; an hourly job copies it into this database.
+let db = null, canWrite = false, books = {}, jobs = [], loaded = false, assistants = [], asstLoaded = false;
+let state = {view:'home', year:null, type:'ALL', st:null, ref:null, q:''};
+try { const s = JSON.parse(localStorage.getItem('cpata-ui')||'{}'); if (s.year) state.year = s.year; if (s.type) state.type = s.type; } catch(e) {}
+const saveUi = () => { try { localStorage.setItem('cpata-ui', JSON.stringify({year:state.year,type:state.type})); } catch(e) {} };
+
+// ---------- dates & numbers ----------
+const todayISO = () => { const d = new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10); };
+const parse = s => s ? new Date(s+'T00:00:00') : null;
+const addYear = s => { if (!s) return null; const [y,m,d] = s.split('-').map(Number); const last = new Date(y+1, m, 0).getDate(); return `${y+1}-${String(m).padStart(2,'0')}-${String(Math.min(d,last)).padStart(2,'0')}`; };
+const addDays = (s,n) => { const d = parse(s); d.setDate(d.getDate()+n); return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10); };
+const diff = (a,b) => Math.round((parse(a)-parse(b))/864e5);
+const th = s => { if (!s) return '–'; const d = parse(s); return d.getDate()+' '+MON[d.getMonth()]+' '+String(d.getFullYear()+543).slice(2); };
+const thFull = s => { if (!s) return ''; const d = parse(s); return d.getDate()+' '+MON[d.getMonth()]+' '+(d.getFullYear()+543); };
+const baht = n => n==null||n==='' ? '–' : Number(n).toLocaleString('th-TH',{maximumFractionDigits:2});
+const kbaht = n => n>=1e6 ? (n/1e6).toLocaleString('th-TH',{maximumFractionDigits:2})+' ล.' : Number(n).toLocaleString('th-TH');
+const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const tinDigits = s => String(s||'').replace(/\D/g,'');
+const tinOk = s => { s = tinDigits(s); if (s.length!==13) return false; let t=0; for (let i=0;i<12;i++) t += +s[i]*(13-i); return (11 - t%11)%10 === +s[12]; };
+const fmtTin = s => { s = tinDigits(s); return s.length===13 ? `${s[0]}-${s.slice(1,5)}-${s.slice(5,10)}-${s.slice(10,12)}-${s[12]}` : s; };
+const deadline = j => j.fye ? addDays(j.fye, DEADLINE_DAYS) : null;
+const defaultWorkYear = fye => fye ? parse(addDays(fye, DEADLINE_DAYS)).getFullYear()+543 : new Date().getFullYear()+543;
+
+function status(j) {
+  if (j.cancelled) return 'cancel';
+  if (j.noPay) return 'nopay';
+  if (!j.notified) return 's1';
+  const lateNow = !j.reportDate && j.fye && todayISO() > deadline(j);
+  // audit starts only when the client has sent documents
+  if (!j.docsDate) return lateNow ? 'late' : 'wait';
+  // audit finished when documents date + report date are filled, plus opinion for CPA jobs (same rule as the Excel file)
+  // documents received: in progress even past the deadline (the follow-up list still warns about the deadline)
+  if (!j.reportDate || (j.type !== 'TA' && !j.opinion)) return 's2';
+  if (!j.paidDate) return 's3';
+  if (j.payout && !j.payoutDate) return 's4';
+  return 's5';
+}
+
+// ---------- checks ----------
+function issuesOf(j, all) {
+  const out = [], t = todayISO(), dl = deadline(j);
+  if (j.cancelled) return out;
+  const bad = (m) => out.push({lvl:'bad', m}), warn = (m) => out.push({lvl:'warn', m});
+  if (!j.tin) warn('ยังไม่มีเลขผู้เสียภาษี');
+  else if (!tinOk(j.tin)) bad('เลขผู้เสียภาษีไม่ถูกต้อง (ตรวจหลักสุดท้ายไม่ผ่าน)');
+  if (j.tin && j.fye && all) {
+    const d = all.filter(o => o !== j && !o.cancelled && !o.deleted && o.type===j.type && tinDigits(o.tin)===tinDigits(j.tin) && o.fye===j.fye);
+    if (d.length) bad(`งานซ้ำ: งวด ${thFull(j.fye)} มีอยู่แล้วที่ ${d.map(x=>x.id).join(', ')}`);
+  }
+  if (j.noPay) return out;
+  if (!j.fye) warn('ยังไม่ใส่วันสิ้นปีบัญชี');
+  if (j.fee == null || j.fee === '') warn('ยังไม่ใส่ค่าธรรมเนียม');
+  if (!j.reportDate && dl) {
+    const left = diff(dl, t);
+    if (left < 0) bad(`เลยกำหนดส่งงบ ${-left} วัน (กำหนด ${thFull(dl)})`);
+    else if (left <= 30) warn(`ใกล้กำหนดส่งงบ อีก ${left} วัน (${thFull(dl)})`);
+  }
+  if (j.reportDate && !j.notified) bad('ลงรายงานแล้วแต่ยังไม่แจ้งรับงานในระบบ');
+  if (j.reportDate && j.fye && j.reportDate <= j.fye) bad('วันที่ลงรายงานไม่หลังวันสิ้นปีบัญชี ตรวจปี พ.ศ.');
+  if (j.reportDate && j.notified && j.reportDate < j.notified) warn('ลงรายงานก่อนวันแจ้งรับงาน');
+  if (j.paidDate && j.fye && j.paidDate < j.fye) warn('วันที่รับเงินอยู่ก่อนวันสิ้นปีบัญชี ตรวจปี พ.ศ.');
+  if (j.reportDate && !j.opinion) warn('ยังไม่ระบุรูปแบบความเห็น');
+  if (j.reportDate && !j.paidDate) { const d = diff(t, j.reportDate); if (d > 30) warn(`ลงรายงานแล้ว ${d} วัน ยังไม่ได้รับเงิน`); }
+  if (j.paidDate && j.whtCert === false) warn('รับเงินแล้ว ยังไม่ได้หนังสือรับรองหัก ณ ที่จ่าย (50 ทวิ)');
+  if (j.payout && j.paidDate && !j.payoutDate) warn(`รับเงินแล้ว ยังไม่โอนค่าตอบแทนให้ ${j.referrer||'ผู้ส่งงาน'}`);
+  if (j.payout && j.fee && j.payout > j.fee) bad('ค่าตอบแทนผู้ส่งงานสูงกว่าค่าธรรมเนียม');
+  return out;
+}
+
+// ---------- data ----------
+function rebuild() {
+  jobs = [];
+  for (const [b, doc] of Object.entries(books)) {
+    for (const [id, j] of Object.entries(doc.items||{})) if (j && !j.deleted) jobs.push({...j, id, _b:b});
+  }
+  jobs.sort((a,b) => (a.id < b.id ? -1 : 1));
+  const years = [...new Set(jobs.map(j => j.workYear))].sort();
+  if (!state.year || !years.includes(state.year)) {
+    const cur = new Date().getFullYear()+543;
+    state.year = years.includes(cur) ? cur : years[years.length-1] || cur;
+  }
+  render();
+}
+const inScope = j => j.workYear===state.year && (state.type==='ALL' || j.type===state.type);
+
+function showBanner(msg){ const b=$('#banner'); b.textContent=msg||''; b.hidden=!msg; }
+
+// Data comes from the Excel file on the NAS: every save posts the register to this Google Apps Script.
+const COLS = {'รหัสงาน':'id','ประเภท':'type','ปีงาน (พ.ศ.)':'workYear','ชื่อกิจการ':'name','เลขผู้เสียภาษี':'tin','ผู้ส่งงาน':'referrer',
+  'ผู้ช่วยฯ':'assistant','วันที่ส่งงาน':'docsDate','วันที่ลูกค้าส่งงาน':'docsDate','วันสิ้นปีบัญชี':'fye','วันแจ้งรับงานในระบบ':'notified',
+  'ค่าธรรมเนียม':'fee','วันที่ลงรายงาน':'reportDate','ความเห็น':'opinion','วันที่รับเงิน':'paidDate','ได้ 50 ทวิ':'whtCert',
+  'รายได้ในงบ':'revenueFS','ค่าตอบแทนผู้ส่งงาน':'payout','วันที่โอนจ่าย':'payoutDate','ยกเลิก':'cancelled','หมายเหตุ':'note'};
+const ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
+function rowsToBooks(d) {
+  const out = {}, idx = {};
+  (d.headers||[]).forEach((h,i) => { const k = COLS[String(h).trim()]; if (k && !(k in idx)) idx[k] = i; });
+  for (const r of d.rows||[]) {
+    const g = k => idx[k] == null ? null : r[idx[k]];
+    const s = v => v == null || v === '' ? null : String(v).trim() || null;
+    const id = s(g('id')), name = s(g('name')), wy = +g('workYear');
+    if (!id || !name || !wy) continue;
+    const date = v => typeof v === 'string' && ISO_RE.test(v) ? v : null;
+    const num = v => typeof v === 'number' ? v : null;
+    const pv = g('paidDate'), wht = s(g('whtCert'));
+    const j = {type: s(g('type')) === 'TA' ? 'TA' : 'CPA', workYear: wy, name, tin: String(g('tin')||'').replace(/\D/g,'') || null,
+      referrer: s(g('referrer')), assistant: s(g('assistant')), docsDate: date(g('docsDate')), fye: date(g('fye')),
+      notified: date(g('notified')), fee: num(g('fee')), reportDate: date(g('reportDate')), opinion: s(g('opinion')),
+      paidDate: date(pv), noPay: pv != null && pv !== '' && !date(pv) ? String(pv) : null,
+      whtCert: wht === 'ได้แล้ว' ? true : wht === 'ยังไม่ได้' ? false : null, revenueFS: num(g('revenueFS')),
+      payout: num(g('payout')), payoutDate: date(g('payoutDate')), cancelled: s(g('cancelled')) === 'ยกเลิก', note: s(g('note'))};
+    (out[`${j.type}-${wy}`] ||= {items:{}}).items[id] = j;
+  }
+  return out;
+}
+function applyData(d) {
+  books = rowsToBooks(d); loaded = true; showBanner('');
+  const t = iso => { const x = new Date(iso); return isNaN(x) ? '-' : `${x.getDate()} ${MON[x.getMonth()]} ${String(x.getFullYear()+543).slice(2)} ${String(x.getHours()).padStart(2,'0')}:${String(x.getMinutes()).padStart(2,'0')} น.`; };
+  $('#syncInfo').textContent = `ข้อมูลจาก Excel บน NAS (บันทึกล่าสุด ${t(d.savedAt)}) · แตะที่นี่เพื่อโหลดใหม่`;
+  rebuild();
+}
+let lastSaved = null;
+const API = 'https://script.google.com/macros/s/AKfycbz72ripsu3Ao8mzvWIoDzu9x1R2U1HuYZg9W7g5vxH44_Xys8pKx1WfkliH2LJQFDXAWA/exec';
+const KEYQ = (() => { let k = new URLSearchParams(location.search).get('k');
+  try { if (k) localStorage.setItem('cpata-key', k); else k = localStorage.getItem('cpata-key'); } catch (e) {}
+  return k || ''; })();
+async function refresh() {
+  if (!KEYQ) { showBanner('เปิดจากลิงก์ที่มีรหัส (?k=...) ครั้งแรกก่อน'); return; }
+  try {
+    const t = await fetch(`${API}?format=json&k=${encodeURIComponent(KEYQ)}`, {cache:'no-store'}).then(r => r.text());
+    const d = JSON.parse(t);
+    if (d.savedAt !== lastSaved) { lastSaved = d.savedAt; applyData(d); try { localStorage.setItem('cpata-data', t); } catch (e) {} }
+  } catch (e) { showBanner(loaded ? 'ออฟไลน์ ข้อมูลที่เห็นอาจไม่ใช่ล่าสุด' : 'โหลดข้อมูลไม่ได้ ตรวจอินเทอร์เน็ต'); }
+}
+async function init() {
+  $('#syncInfo').style.cursor = 'pointer'; $('#syncInfo').addEventListener('click', refresh);
+  try { const c = localStorage.getItem('cpata-data'); if (c) { const d = JSON.parse(c); lastSaved = d.savedAt; applyData(d); } } catch (e) {}   // last data first, fresh data follows
+  await refresh();
+  setInterval(() => { if (!document.hidden) refresh(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+}
+let writing = Promise.resolve();
+function writeJob(j) {
+  const {id, _b, ...body} = j;
+  for (const k of Object.keys(body)) if (body[k] === undefined) body[k] = null;
+  body.updatedAt = new Date().toISOString();
+  const ref = db.doc('books/'+_b);
+  writing = writing.then(() => books[_b] ? ref.update({items:{[id]:body}}) : ref.set({items:{[id]:body}}));
+  return writing;
+}
+function newId(type, wy) {
+  const b = `${type}-${wy}`, pre = `${type}${wy}-`;
+  const nums = Object.keys(books[b]?.items||{}).filter(k=>k.startsWith(pre)).map(k=>+k.slice(pre.length)||0);
+  return {id: pre + String((nums.length?Math.max(...nums):0)+1).padStart(3,'0'), _b:b};
+}
+
+// ---------- render ----------
+function render() {
+  const scope = jobs.filter(inScope);
+  $('#sub').textContent = loaded || jobs.length ? `ปีงาน ${state.year} · ${scope.filter(j=>!j.cancelled).length} งาน` : ($('#sub').textContent);
+  // years
+  const years = [...new Set(jobs.map(j=>j.workYear))].sort();
+  if (!years.includes(state.year)) years.push(state.year);
+  $('#years').innerHTML = years.map(y=>`<button class="chip" data-y="${y}" aria-pressed="${y===state.year}">ปีงาน ${y}</button>`).join('');
+  document.querySelectorAll('#typeSeg button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.t===state.type));
+  document.querySelectorAll('nav.tabs button[data-v]').forEach(b=>{ if (b.dataset.v!=='add') b.toggleAttribute('aria-current', false); });
+  const tab = document.querySelector(`nav.tabs button[data-v="${state.view}"]`); if (tab) tab.setAttribute('aria-current','page');
+  ['home','jobs','ref'].forEach(v => $('#v-'+v).hidden = state.view!==v);
+  $('#addBtn').disabled = !canWrite || !db;
+  if (state.view==='home') renderHome(scope);
+  if (state.view==='jobs') renderJobs(scope);
+  if (state.view==='ref') renderRef(scope);
+  // datalists
+  const cnt = k => Object.entries(jobs.reduce((m,j)=>{ if (j[k]) m[j[k]]=(m[j[k]]||0)+1; return m; },{})).sort((a,b)=>b[1]-a[1]).map(x=>`<option value="${esc(x[0])}">`).join('');
+  $('#refList').innerHTML = cnt('referrer');
+  $('#asstList').innerHTML = assistants.length ? assistants.map(n=>`<option value="${esc(n)}">`).join('') : cnt('assistant');
+}
+
+// ---------- assistants ----------
+let asstEdit = null, asstDel = null, asstBusy = false;
+const asstCount = () => jobs.reduce((m,j)=>{ if (j.assistant) m[j.assistant]=(m[j.assistant]||0)+1; return m; },{});
+const sortTh = a => [...a].sort((x,y)=>x.localeCompare(y,'th'));
+function renderAssistants() {
+  const c = asstCount(), ro = !canWrite || !db || asstBusy;
+  $('#asstAddForm').querySelectorAll('input,button').forEach(el=>el.disabled = ro);
+  const row = (n, kind) => {
+    const key = kind+':'+n;
+    if (asstEdit === key) return `<div class="prow"><input id="asstRen" value="${esc(n)}" list="asstList" aria-label="ชื่อใหม่"><button class="btn primary" data-a="save" data-k="${esc(key)}">บันทึก</button><button class="btn ghost" data-a="cancel">ยกเลิก</button></div>`;
+    const btns = kind==='m'
+      ? `<button class="btn" data-a="ren" data-k="${esc(key)}" ${ro?'disabled':''}>แก้ไข</button><button class="btn danger" data-a="del" data-k="${esc(key)}" ${ro?'disabled':''}>${asstDel===key?'แตะอีกครั้งเพื่อลบ':'ลบ'}</button>`
+      : `<button class="btn" data-a="ren" data-k="${esc(key)}" ${ro?'disabled':''}>แก้ชื่อ</button><button class="btn" data-a="adopt" data-k="${esc(key)}" ${ro?'disabled':''}>เพิ่มเข้ารายชื่อ</button><button class="btn" data-a="note" data-k="${esc(key)}" ${ro?'disabled':''}>ย้ายไปหมายเหตุ</button>`;
+    return `<div class="prow"><span class="pn">${esc(n)}</span><span class="pc num">${c[n]||0} งาน</span>${btns}</div>`;
+  };
+  const keep = $('#asstRen') ? $('#asstRen').value : null;
+  $('#asstBox').innerHTML = assistants.length ? assistants.map(n=>row(n,'m')).join('')
+    : `<div class="empty">${asstLoaded?'ยังไม่มีรายชื่อผู้ช่วย พิมพ์ชื่อด้านบนแล้วกด เพิ่ม':'กำลังโหลดรายชื่อ…'}</div>`;
+  const orphans = Object.keys(c).filter(n=>!assistants.includes(n)).sort((a,b)=>c[b]-c[a]);
+  $('#asstOrphans').innerHTML = orphans.length ? orphans.map(n=>row(n,'o')).join('') : '<div class="empty">ทุกชื่อในงานตรงกับรายชื่อแล้ว</div>';
+  const ren = $('#asstRen');
+  if (ren) { if (keep != null) ren.value = keep; else { ren.focus(); ren.select(); } }
+}
+async function saveAssistants(list) {
+  await db.doc('settings/assistants').set({names: sortTh([...new Set(list.map(s=>s.trim()).filter(Boolean))])});
+}
+async function patchJobs(match, change) {
+  let n = 0;
+  for (const [b, doc] of Object.entries(books)) {
+    const items = {};
+    for (const [id, j] of Object.entries(doc.items||{})) if (j && !j.deleted && match(j)) { items[id] = {...change(j), updatedAt:new Date().toISOString()}; n++; }
+    if (Object.keys(items).length) await db.doc('books/'+b).update({items});
+  }
+  return n;
+}
+async function asstAction(a, key) {
+  const kind = key.slice(0,1), name = key.slice(2);
+  if (a==='ren') { asstEdit = key; asstDel = null; renderAssistants(); return; }
+  if (a==='cancel') { asstEdit = null; renderAssistants(); return; }
+  if (a==='del' && asstDel !== key) { asstDel = key; renderAssistants(); setTimeout(()=>{ if (asstDel===key) { asstDel=null; renderAssistants(); } }, 3000); return; }
+  asstBusy = true; renderAssistants();
+  try {
+    if (a==='save') {
+      const nw = ($('#asstRen').value||'').trim();
+      if (!nw || nw===name) { asstEdit=null; return; }
+      const n = await patchJobs(j=>j.assistant===name, ()=>({assistant:nw}));
+      const list = assistants.filter(x=>x!==name);
+      if (kind==='m' || !list.includes(nw)) list.push(nw);
+      await saveAssistants(list); asstEdit = null;
+      toast(`เปลี่ยน ${name} เป็น ${nw} แล้ว (${n} งาน)`);
+    } else if (a==='del') {
+      asstDel = null; await saveAssistants(assistants.filter(x=>x!==name)); toast(`ลบ ${name} ออกจากรายชื่อแล้ว`);
+    } else if (a==='adopt') {
+      await saveAssistants([...assistants, name]); toast(`เพิ่ม ${name} เข้ารายชื่อแล้ว`);
+    } else if (a==='note') {
+      const n = await patchJobs(j=>j.assistant===name, j=>({assistant:null, note: j.note ? `${j.note} | ${name}` : name}));
+      toast(`ย้าย "${name}" ไปหมายเหตุแล้ว ${n} งาน`);
+    }
+  } catch(e) { toast('บันทึกไม่สำเร็จ ลองอีกครั้ง'); }
+  finally { asstBusy = false; renderAssistants(); }
+}
+$('#v-ref').addEventListener('click', e => { const b=e.target.closest('[data-a]'); if (b) { e.preventDefault(); asstAction(b.dataset.a, b.dataset.k||''); } });
+$('#v-ref').addEventListener('keydown', e => { if (e.target.id==='asstRen' && e.key==='Enter') { e.preventDefault(); const s=$('#asstBox [data-a="save"],#asstOrphans [data-a="save"]'); if (s) asstAction('save', s.dataset.k); } if (e.target.id==='asstRen' && e.key==='Escape') asstAction('cancel',''); });
+$('#asstAddForm').addEventListener('submit', async e => {
+  e.preventDefault(); const nm = $('#asstNew').value.trim(); if (!nm || !db || !canWrite) return;
+  if (assistants.includes(nm)) { toast(`มี ${nm} อยู่แล้ว`); return; }
+  try { await saveAssistants([...assistants, nm]); $('#asstNew').value=''; toast(`เพิ่ม ${nm} แล้ว`); } catch(err) { toast('เพิ่มไม่สำเร็จ'); }
+});
+
+function renderHome(scope) {
+  const act = scope.filter(j=>!j.cancelled);
+  if (!jobs.length) {
+    $('#kpis').innerHTML = ''; $('#pipe').innerHTML = '';
+    $('#issues').innerHTML = `<div class="empty">${loaded ? 'ยังไม่มีงานในทะเบียน กด "รับงานใหม่" ด้านล่างเพื่อบันทึกงานแรก' : 'กำลังโหลดทะเบียนงาน…'}</div>`;
+    return;
+  }
+  const money = act.filter(isMoney), np = act.filter(j=>j.noPay);
+  // fee counts only jobs whose client has sent documents (same rule as the Excel dashboard)
+  const started = money.filter(j=>j.docsDate), notYet = money.filter(j=>!j.docsDate);
+  const notYetFee = notYet.reduce((s,j)=>s+(+j.fee||0),0);
+  const fee = started.reduce((s,j)=>s+(+j.fee||0),0), got = started.filter(j=>j.paidDate).reduce((s,j)=>s+(+j.fee||0),0);
+  // เงินรับล่วงหน้า: paid but the client has not sent documents yet
+  const adv = notYet.filter(j=>j.paidDate), advFee = adv.reduce((s,j)=>s+(+j.fee||0),0);
+  const owe = money.filter(j=>j.payout && !j.payoutDate).reduce((s,j)=>s+j.payout*0.97,0);
+  const npFee = np.reduce((s,j)=>s+(+j.fee||0),0);
+  // ค้างรับ = only jobs already reported and awaiting payment (status s3); unstarted work is not counted
+  const due = money.filter(j=>status(j)==='s3'), dueFee = due.reduce((s,j)=>s+(+j.fee||0),0);
+  $('#kpis').innerHTML = `
+    <div class="kpi"><div class="l">งานที่รับ</div><div class="v num">${act.length}</div><div class="s">CPA ${act.filter(j=>j.type==='CPA').length} · TA ${act.filter(j=>j.type==='TA').length}</div></div>
+    <div class="kpi"><div class="l">ค่าธรรมเนียม (เริ่มตรวจแล้ว)</div><div class="v num">${kbaht(fee)}</div><div class="s">${[notYet.length?`ยังไม่เริ่มตรวจ ${notYet.length} งาน (${baht(notYetFee)}) ไม่นับรวม`:'', np.length?`ไม่รวมงานไม่ได้รับเงิน ${np.length} งาน`:''].filter(Boolean).join(' · ')||'บาท'}</div></div>
+    <div class="kpi"><div class="l">รับเงินแล้ว</div><div class="v num">${kbaht(got)}</div><div class="s">${fee?Math.round(got/fee*100):0}% ของค่าธรรมเนียม</div></div>
+    <div class="kpi warn"><div class="l">ค้างรับ</div><div class="v num">${kbaht(dueFee)}</div><div class="s">${due.length} งานลงรายงานแล้ว รอรับเงิน${owe?' · ค้างโอนผู้ส่งงาน '+kbaht(Math.round(owe)):''}</div></div>
+    ${adv.length?`<div class="kpi"><div class="l">เงินรับล่วงหน้า</div><div class="v num">${kbaht(advFee)}</div><div class="s">${adv.length} งาน ยังไม่เริ่มตรวจ</div></div>`:''}`;
+  const c = {}; scope.forEach(j=>{ const s=status(j); c[s]=(c[s]||0)+1; });
+  const max = Math.max(1,...Object.values(c));
+  $('#pipe').innerHTML = ST_ORDER.filter(s=>c[s]||['s1','wait','s2','s3','s5'].includes(s)).map(s=>`
+    <button data-st="${s}"><span><span class="pill st-${s}">${ST[s]}</span></span><span class="num">${c[s]||0}</span><span class="bar st-${s}" style="width:${(c[s]||0)/max*100}%;background:currentColor"></span></button>`).join('');
+  const iss = [];
+  for (const j of act) for (const i of issuesOf(j, jobs)) iss.push({j, ...i});
+  iss.sort((a,b)=> (a.lvl===b.lvl?0:a.lvl==='bad'?-1:1) || (deadline(a.j)||'').localeCompare(deadline(b.j)||''));
+  $('#issues').innerHTML = iss.length ? iss.slice(0,40).map(i=>`
+    <button class="issue ${i.lvl}" data-id="${esc(i.j.id)}"><div><div class="t">${esc(i.j.name)}</div><div class="d">${esc(i.m)}</div></div></button>`).join('')
+    + (iss.length>40?`<div class="note">และอีก ${iss.length-40} รายการ ดูในแท็บงานทั้งหมด</div>`:'')
+    : '<div class="empty">ไม่มีรายการที่ต้องติดตามในปีนี้</div>';
+}
+
+function renderJobs(scope) {
+  const q = state.q.trim().toLowerCase(), qd = tinDigits(q);
+  const c = {}; scope.forEach(j=>{ const s=status(j); c[s]=(c[s]||0)+1; });
+  const fl = [`<button class="chip" data-st="" aria-pressed="${!state.st}">ทั้งหมด ${scope.length}</button>`,
+    `<button class="chip" data-st="issue" aria-pressed="${state.st==='issue'}">มีข้อสังเกต</button>`]
+    .concat(ST_ORDER.filter(s=>c[s]).map(s=>`<button class="chip" data-st="${s}" aria-pressed="${state.st===s}">${ST[s]} ${c[s]}</button>`));
+  if (state.ref) fl.unshift(`<button class="chip" data-clearref="1" aria-pressed="true">ผู้ส่งงาน: ${esc(state.ref)} ✕</button>`);
+  $('#stFilters').innerHTML = fl.join('');
+  let list = scope.filter(j => (!state.ref || j.referrer===state.ref)
+    && (!state.st || (state.st==='issue' ? issuesOf(j,jobs).length : status(j)===state.st))
+    && (!q || j.name.toLowerCase().includes(q) || (qd.length>=4 && tinDigits(j.tin).includes(qd)) || (j.referrer||'').toLowerCase().includes(q)));
+  const rank = s => ST_ORDER.indexOf(s);
+  list.sort((a,b)=> rank(status(a))-rank(status(b)) || (deadline(a)||'9').localeCompare(deadline(b)||'9'));
+  const sum = list.filter(isMoney).reduce((s,j)=>s+(+j.fee||0),0);
+  $('#count').textContent = `${list.length} งาน · ค่าธรรมเนียม ${baht(sum)} บาท`;
+  $('#exportBtn').hidden = true;
+  $('#exportBtn').onclick = () => exportCsv(list);
+  $('#list').innerHTML = list.length ? list.slice(0,300).map(j=>{
+    const s = status(j), iss = issuesOf(j, jobs).filter(i=>i.lvl==='bad');
+    return `<button class="card" data-id="${esc(j.id)}">
+      <div class="row1"><span class="tag ${j.type==='TA'?'ta':''}">${j.type}</span><span class="nm">${esc(j.name)}</span><span class="pill st-${s}">${ST[s]}</span></div>
+      <div class="meta"><span class="num">${esc(fmtTin(j.tin))}</span><span>${esc(j.referrer||'–')}</span><span>งวด ${th(j.fye)}</span><span class="num">${baht(j.fee)} ฿</span>${!j.reportDate&&deadline(j)?`<span>ส่งงบภายใน ${th(deadline(j))}</span>`:''}</div>
+      ${iss.length?`<div class="flags">${esc(iss[0].m)}${iss.length>1?` และอีก ${iss.length-1} ข้อ`:''}</div>`:''}
+    </button>`; }).join('') + (list.length>300?'<div class="note">แสดง 300 รายการแรก พิมพ์ค้นหาเพื่อกรองเพิ่ม</div>':'')
+    : `<div class="empty">${jobs.length?'ไม่พบงานตามเงื่อนไขนี้':'ยังไม่มีงานในทะเบียน'}</div>`;
+}
+
+function renderRef(scope) {
+  const m = {};
+  scope.filter(j=>!j.cancelled).forEach(j=>{ const k=j.referrer||'(ไม่ระบุ)'; const r=m[k]||(m[k]={n:0,fee:0,owe:0,pay:0,unpaid:0});
+    r.n++; if (j.noPay) return; r.fee+=+j.fee||0; if(status(j)==='s3') r.owe+=+j.fee||0; if(j.payout){ r.pay+=j.payout*0.97; if(!j.payoutDate) r.unpaid+=j.payout*0.97; } });
+  const rows = Object.entries(m).sort((a,b)=>b[1].fee-a[1].fee);
+  $('#reftable').innerHTML = `<thead><tr><th>ผู้ส่งงาน</th><th>งาน</th><th>ค่าธรรมเนียม</th><th>ค้างรับ</th><th>ค้างโอนสุทธิ</th></tr></thead><tbody>` +
+    (rows.length ? rows.map(([k,r])=>`<tr data-ref="${esc(k)}"><td>${esc(k)}</td><td class="num">${r.n}</td><td class="num">${baht(r.fee)}</td><td class="num">${r.owe?baht(r.owe):'–'}</td><td class="num">${r.unpaid?baht(Math.round(r.unpaid*100)/100):'–'}</td></tr>`).join('')
+      : '<tr><td colspan="5" class="note">ยังไม่มีงานในปีนี้</td></tr>') + '</tbody>';
+  renderAssistants();
+}
+
+// ---------- CSV ----------
+const CSV_COLS = [['รหัสงาน','id'],['ประเภท','type'],['ปีงาน (พ.ศ.)','workYear'],['ชื่อกิจการ','name'],['เลขผู้เสียภาษี','tin'],['ผู้ส่งงาน','referrer'],['ผู้ช่วยฯ','assistant'],
+  ['วันสิ้นปีบัญชี','fye'],['วันแจ้งรับงานในระบบ','notified'],['วันที่ส่งงาน','docsDate'],['ค่าธรรมเนียม','fee'],['วันที่ลงรายงาน','reportDate'],['ความเห็น','opinion'],['วันที่รับเงิน','paidDate'],
+  ['ได้ 50 ทวิ','whtCert'],['รายได้ในงบ','revenueFS'],['ค่าตอบแทนผู้ส่งงาน','payout'],['วันที่โอนจ่าย','payoutDate'],['ยกเลิก','cancelled'],['หมายเหตุ','note']];
+const DATE_K = new Set(['fye','notified','docsDate','reportDate','paidDate','payoutDate']);
+const NUM_K = new Set(['fee','revenueFS','payout','workYear']);
+const beDate = s => { if (!s) return ''; const d=parse(s); return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()+543}`; };
+async function exportCsv(list) {
+  const q = v => { v = String(v??''); return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+  const lines = [CSV_COLS.map(c=>c[0]).join(',')].concat(list.map(j => CSV_COLS.map(([,k]) => {
+    let v = j[k]; if (DATE_K.has(k)) v = beDate(v);
+    if (k==='paidDate' && j.noPay) v = j.noPay.startsWith('ไม่ได้รับเงิน') ? j.noPay : 'ไม่ได้รับเงิน: '+j.noPay; if (k==='cancelled') v = v?'ยกเลิก':''; if (k==='whtCert') v = v===true?'ได้แล้ว':v===false?'ยังไม่ได้':'';
+    if (k==='tin') v = v ? '="'+v+'"' : ''; return q(v); }).join(',')));
+  const dl = await window.claude?.use?.('downloads');
+  if (!dl) { toast('อุปกรณ์นี้ส่งออกไฟล์ไม่ได้'); return; }
+  try { await dl.save({filename:`ทะเบียนงาน_${state.year}_${state.type}.csv`, data:new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv'})}); toast('ส่งออกแล้ว'); }
+  catch(e) { if (e?.code !== 'declined') toast('ส่งออกไม่สำเร็จ'); }
+}
+function parseCsv(text) {
+  const rows=[]; let row=[], f='', i=0, inq=false;
+  text = text.replace(/^﻿/,'');
+  for (; i<text.length; i++) { const ch=text[i];
+    if (inq) { if (ch==='"') { if (text[i+1]==='"') { f+='"'; i++; } else inq=false; } else f+=ch; }
+    else if (ch==='"') inq=true; else if (ch===',') { row.push(f); f=''; } else if (ch==='\n') { row.push(f); rows.push(row); row=[]; f=''; } else if (ch!=='\r') f+=ch; }
+  if (f||row.length) { row.push(f); rows.push(row); }
+  return rows;
+}
+const toISO = s => { s=String(s||'').trim(); if (!s) return null; let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return m[0];
+  m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (!m) return null; let y=+m[3]; if (y>2400) y-=543; return `${y}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`; };
+$('#importFile').addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
+  if (!db || !canWrite) { $('#importMsg').textContent='ไม่มีสิทธิ์บันทึกข้อมูล'; return; }
+  const rows = parseCsv(await file.text()); const hdr = rows.shift()||[];
+  const idx = Object.fromEntries(CSV_COLS.map(([h,k])=>[k, hdr.findIndex(x=>x.trim()===h)]));
+  if (idx.name<0) { $('#importMsg').textContent='ไม่พบคอลัมน์ "ชื่อกิจการ" ตรวจว่าเป็นไฟล์จากชีตทะเบียนงาน'; return; }
+  const byBook = {}; let n=0, skipped=0;
+  for (const r of rows) {
+    const get = k => idx[k]>=0 ? (r[idx[k]]??'').trim() : '';
+    if (!get('name')) continue;
+    const j = {};
+    for (const [,k] of CSV_COLS) { const v=get(k); if (k==='id') continue;
+      j[k] = DATE_K.has(k) ? toISO(v) : NUM_K.has(k) ? (v===''?null:+v.replace(/[,"=]/g,'')) : k==='cancelled' ? v==='ยกเลิก' : k==='whtCert' ? (v==='ได้แล้ว'?true:v==='ยังไม่ได้'?false:null) : k==='tin' ? tinDigits(v) : (v||null); }
+    j.type = j.type==='TA'?'TA':'CPA'; j.cancelled = !!j.cancelled;
+    const pv = get('paidDate'); j.noPay = pv && !toISO(pv) ? pv : null;
+    if (!j.workYear || isNaN(j.workYear)) j.workYear = defaultWorkYear(j.fye);
+    let id = get('id'), ex = id && jobs.find(x=>x.id===id);
+    const _b = ex ? ex._b : `${j.type}-${j.workYear}`;
+    if (!id) { const pre=`${j.type}${j.workYear}-`; const base=Object.keys(books[_b]?.items||{}).concat(Object.keys(byBook[_b]||{})).filter(k=>k.startsWith(pre)).map(k=>+k.slice(pre.length)||0); id = pre+String((base.length?Math.max(...base):0)+1).padStart(3,'0'); }
+    if (!/^[A-Za-z0-9_\-.]+$/.test(id)) { skipped++; continue; }
+    (byBook[_b] ||= {})[id] = {...j, updatedAt:new Date().toISOString()}; n++;
+  }
+  $('#importMsg').textContent = `กำลังนำเข้า ${n} งาน…`;
+  try { for (const [b, items] of Object.entries(byBook)) { const ref=db.doc('books/'+b); await (books[b] ? ref.update({items}) : ref.set({items})); }
+    $('#importMsg').textContent = `นำเข้าแล้ว ${n} งาน${skipped?` (ข้าม ${skipped} แถวที่รหัสงานไม่ถูกต้อง)`:''}`; }
+  catch(err) { $('#importMsg').textContent = 'นำเข้าไม่สำเร็จ: '+(err.code||err.message); }
+  e.target.value='';
+});
+
+// ---------- form ----------
+let editing = null, fType = 'CPA';
+const F = id => $('#'+id);
+function setType(t) { fType=t; document.querySelectorAll('#fType button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.t===t));
+  const cur = F('fOpinion').value; F('fOpinion').innerHTML = '<option value="">–</option>'+OPIN[t].map(o=>`<option>${o}</option>`).join('');
+  if (OPIN[t].includes(cur)) F('fOpinion').value = cur; }
+let lastAuto = null;
+function prevJobFor(tin, type) {
+  const prev = jobs.filter(x => tinDigits(x.tin)===tin && !x.cancelled).sort((a,b)=>(a.fye||'').localeCompare(b.fye||''));
+  return prev.filter(x=>x.type===type).pop() || prev.pop() || null;
+}
+function autofill() {
+  if (editing) return;
+  const d = tinDigits(F('fTin').value);
+  if (d.length!==13 || !tinOk(d)) { if (lastAuto) { lastAuto=null; $('#autoNote').textContent=''; } return; }
+  if (lastAuto===d) return;
+  lastAuto = d;
+  const p = prevJobFor(d, fType);
+  if (!p) { $('#autoNote').textContent = 'ลูกค้าใหม่ ไม่พบงานเดิมในทะเบียน'; return; }
+  const put = (id, val) => { if (F(id).value==='' && val!=null && val!=='') F(id).value = val; };
+  put('fName', p.name); put('fRef', p.referrer); put('fAsst', p.assistant); put('fFee', p.fee); put('fPayout', p.payout);
+  put('fFye', addYear(p.fye));
+  $('#autoNote').textContent = `ดึงข้อมูลจาก ${p.id} (งวด ${thFull(p.fye)}) แล้ว ตรวจค่าธรรมเนียมก่อนบันทึก`;
+}
+function openJob(j, prefill) {
+  editing = j ? {...j} : null;
+  $('#sheetTitle').textContent = j ? j.id : prefill ? 'ต่องานปีหน้า' : 'รับงานใหม่';
+  delete F('fWorkYear').dataset.touched; lastAuto = prefill ? tinDigits(prefill.tin) : null;
+  $('#autoNote').textContent = prefill ? `ต่อจาก ${prefill._from} ตรวจค่าธรรมเนียมก่อนบันทึก` : '';
+  const v = j || prefill || {type: state.type==='TA'?'TA':'CPA', workYear: state.year};
+  setType(v.type);
+  F('fWorkYear').value = v.workYear||''; F('fName').value=v.name||''; F('fTin').value=v.tin?fmtTin(v.tin):''; F('fRef').value=v.referrer||''; F('fAsst').value=v.assistant||'';
+  F('fFye').value=v.fye||''; F('fNotified').value=v.notified||''; F('fDocs').value=v.docsDate||''; F('fReport').value=v.reportDate||''; F('fOpinion').value=v.opinion||''; F('fPaid').value=v.paidDate||'';
+  F('fWht').value = v.whtCert===true?'yes':v.whtCert===false?'no':''; F('fFee').value=v.fee??''; F('fRev').value=v.revenueFS??''; F('fPayout').value=v.payout??''; F('fPayoutDate').value=v.payoutDate||'';
+  F('fNote').value=v.note||''; F('fCancel').checked=!!v.cancelled; F('fNoPay').value=v.noPay||'';
+  $('#delBtn').hidden = !j || !canWrite; $('#rollBtn').hidden = !j || !j.fye || !canWrite; $('#saveBtn').hidden = !canWrite; $('#saveBtn').disabled = !canWrite || !db;
+  $('#cancelBtn').textContent = canWrite ? 'ยกเลิกการแก้ไข' : 'ปิด';
+  [...$('#form').elements].forEach(el=>{ if (el.id!=='cancelBtn' && el.id!=='closeSheet') el.disabled = !canWrite || !db; });
+  $('#sheet').hidden = false; refreshForm();
+  if (!j) setTimeout(()=>F('fName').focus(), 50);
+}
+function formJob() {
+  const n = id => F(id).value==='' ? null : +F(id).value;
+  return {...(editing||{}), type:fType, workYear:n('fWorkYear') || defaultWorkYear(F('fFye').value||null), name:F('fName').value.trim(), tin:tinDigits(F('fTin').value),
+    referrer:F('fRef').value.trim()||null, assistant:F('fAsst').value.trim()||null, fye:F('fFye').value||null, notified:F('fNotified').value||null, docsDate:F('fDocs').value||null,
+    reportDate:F('fReport').value||null, opinion:F('fOpinion').value||null, paidDate:F('fPaid').value||null,
+    whtCert: F('fWht').value==='yes'?true:F('fWht').value==='no'?false:null, fee:n('fFee'), revenueFS:n('fRev'), payout:n('fPayout'),
+    payoutDate:F('fPayoutDate').value||null, note:F('fNote').value.trim()||null, cancelled:F('fCancel').checked,
+    noPay:F('fNoPay').value.trim()||null};
+}
+function refreshForm() {
+  const j = formJob();
+  const d = tinDigits(F('fTin').value), h = $('#tinHint');
+  h.className = 'hint' + (d ? (tinOk(d)?' ok':' bad') : '');
+  h.textContent = !d ? '' : d.length!==13 ? `${d.length}/13 หลัก` : tinOk(d) ? 'เลขถูกต้อง' : 'หลักตรวจสอบไม่ตรง อาจพิมพ์ผิด';
+  const av = F('fAsst').value.trim();
+  $('#asstHint').textContent = av && assistants.length && !assistants.includes(av) ? 'ยังไม่อยู่ในรายชื่อผู้ช่วย (เพิ่มได้ที่แท็บรายชื่อ)' : '';
+  $('#fyeHint').textContent =j.fye ? `${thFull(j.fye)} · ส่งงบภายใน ${thFull(deadline(j))}` : '';
+  document.querySelectorAll('[data-be]').forEach(s => s.textContent = thFull(F(s.dataset.be).value));
+  $('#payCalc').textContent = j.payout ? `หัก ณ ที่จ่าย 3% = ${baht(Math.round(j.payout*3)/100)} · โอนสุทธิ ${baht(Math.round(j.payout*97)/100)} บาท` : '';
+  if (!editing && j.fye && !F('fWorkYear').dataset.touched) F('fWorkYear').value = defaultWorkYear(j.fye);
+  const iss = j.name ? issuesOf(j, jobs.filter(x=>!editing || x.id!==editing.id).concat([j])) : [];
+  $('#formIssues').innerHTML = iss.map(i=>`<div class="${i.lvl}">${esc(i.m)}</div>`).join('');
+  const t = todayISO(), q = [];
+  if (!j.notified) q.push(['fNotified','แจ้งระบบวันนี้']);
+  if (!j.reportDate) q.push(['fReport','ลงรายงานวันนี้']);
+  $('#noPayHint').textContent = j.noPay ? 'งานนี้ไม่นับเป็นรายได้ และไม่อยู่ในยอดค้างรับ' : '';
+  if (!j.paidDate && !j.noPay) q.push(['fPaid','รับเงินวันนี้']);
+  if (j.payout && !j.payoutDate) q.push(['fPayoutDate','โอนผู้ส่งงานวันนี้']);
+  $('#quick').innerHTML = editing && canWrite ? q.map(([f,l])=>`<button type="button" class="btn" data-q="${f}">${l}</button>`).join('') : '';
+}
+function closeSheet() { $('#sheet').hidden = true; editing = null; }
+$('#form').addEventListener('input', e => { if (e.target.id==='fWorkYear') e.target.dataset.touched='1'; if (e.target.id==='fTin') autofill(); refreshForm(); });
+$('#rollBtn').addEventListener('click', () => {
+  if (!editing) return; const p = editing;
+  const fye = addYear(p.fye);
+  openJob(null, {_from:p.id, type:p.type, name:p.name.replace(/\s*\((งบปีแรก|งบเลิก)\)\s*$/,''), tin:p.tin, referrer:p.referrer, assistant:p.assistant,
+    fee:p.fee, payout:p.payout, fye, workYear: defaultWorkYear(fye)});
+});
+$('#fType').addEventListener('click', e => { const b=e.target.closest('button'); if (b) { setType(b.dataset.t); refreshForm(); } });
+$('#quick').addEventListener('click', e => { const b=e.target.closest('[data-q]'); if (!b) return; F(b.dataset.q).value = todayISO(); refreshForm(); $('#form').requestSubmit(); });
+$('#form').addEventListener('submit', async e => {
+  e.preventDefault(); if (!db || !canWrite) return;
+  const j = formJob();
+  if (!j.name) { F('fName').focus(); toast('ใส่ชื่อกิจการก่อนบันทึก'); return; }
+  if (!editing) Object.assign(j, newId(j.type, j.workYear), {createdAt:new Date().toISOString()});
+  $('#saveBtn').disabled = true;
+  try { await writeJob(j); toast(editing ? 'บันทึกแล้ว' : `เพิ่มงาน ${j.id} แล้ว`); closeSheet(); }
+  catch(err) { toast(err.code==='quota_exceeded' ? 'ฐานข้อมูลเต็ม ลบงานเก่าที่ไม่ใช้ก่อน' : 'บันทึกไม่สำเร็จ ลองอีกครั้ง'); }
+  finally { $('#saveBtn').disabled = false; }
+});
+let delArmed = false;
+$('#delBtn').addEventListener('click', async () => {
+  if (!editing) return;
+  if (!delArmed) { delArmed = true; $('#delBtn').textContent = 'แตะอีกครั้งเพื่อลบ'; setTimeout(()=>{ delArmed=false; $('#delBtn').textContent='ลบรายการ'; }, 3000); return; }
+  delArmed = false; $('#delBtn').textContent='ลบรายการ';
+  try { await writeJob({...editing, deleted:true}); toast('ลบแล้ว'); closeSheet(); } catch(e) { toast('ลบไม่สำเร็จ'); }
+});
+$('#cancelBtn').onclick = closeSheet; $('#closeSheet').onclick = closeSheet;
+$('#sheet').addEventListener('click', e => { if (e.target.id==='sheet') closeSheet(); });
+document.addEventListener('keydown', e => { if (e.key==='Escape' && !$('#sheet').hidden) closeSheet(); });
+
+// ---------- navigation ----------
+let toastT; function toast(m) { const t=$('#toast'); t.textContent=m; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true, 2200); }
+document.querySelector('nav.tabs').addEventListener('click', e => { const b=e.target.closest('button'); if (!b) return;
+  if (b.dataset.v==='add') { openJob(null); return; } state.view=b.dataset.v; render(); window.scrollTo(0,0); });
+$('#years').addEventListener('click', e => { const b=e.target.closest('[data-y]'); if (b) { state.year=+b.dataset.y; saveUi(); render(); } });
+$('#typeSeg').addEventListener('click', e => { const b=e.target.closest('button'); if (b) { state.type=b.dataset.t; saveUi(); render(); } });
+$('#pipe').addEventListener('click', e => { const b=e.target.closest('[data-st]'); if (b) { state.st=b.dataset.st; state.ref=null; state.view='jobs'; render(); } });
+$('#stFilters').addEventListener('click', e => { const b=e.target.closest('button'); if (!b) return; if (b.dataset.clearref) state.ref=null; else state.st=b.dataset.st||null; render(); });
+$('#reftable').addEventListener('click', e => { const r=e.target.closest('[data-ref]'); if (r) { state.ref=r.dataset.ref==='(ไม่ระบุ)'?null:r.dataset.ref; state.st=null; state.view='jobs'; render(); } });
+document.addEventListener('click', e => { const c=e.target.closest('.card[data-id],.issue[data-id]'); if (c) openJob(jobs.find(j=>j.id===c.dataset.id)); });
+let qT; $('#q').addEventListener('input', e => { clearTimeout(qT); qT=setTimeout(()=>{ state.q=e.target.value; renderJobs(jobs.filter(inScope)); }, 150); });
+
+render(); init();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+})();
+</script>
